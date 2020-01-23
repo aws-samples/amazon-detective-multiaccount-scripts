@@ -49,7 +49,9 @@ The AmazonDetectiveFullAccess managed policy shown below contains the permission
             "Action": [
                 "detective:CreateMembers",
                 "detective:DeleteMembers",
-                "detective:AcceptInvitation"
+                "detective:AcceptInvitation",
+                "detective:ListGraphs",
+                "detective:ListMembers"
             ],
             "Resource": "*"
         }

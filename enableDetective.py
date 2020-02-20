@@ -17,6 +17,7 @@ import itertools
 import logging
 import re
 import sys
+import time
 import typing
 import boto3
 import botocore.exceptions
@@ -39,7 +40,7 @@ def setup_command_line() -> argparse.Namespace:
     def _master_account_type(val: str, pattern: str = r'[0-9]{12}'):
         if not re.match(pattern, val):
             raise argparse.ArgumentTypeError
-        return int(val)
+        return val
 
     # Setup command line arguments
     parser = argparse.ArgumentParser(description=('Link AWS Accounts to central '
@@ -73,9 +74,9 @@ def read_accounts_csv(input_file: typing.IO) -> typing.Dict:
     aws_account_dict = {}
 
     for acct in input_file.readlines():
-        split_line = acct.rstrip().split(',')
+        split_line = acct.strip().split(',')
 
-        if len(split_line) < 2:
+        if len(split_line) != 2:
             logging.exception(f'Unable to process line: {acct}.')
             continue
 
@@ -85,7 +86,7 @@ def read_accounts_csv(input_file: typing.IO) -> typing.Dict:
                 f'Invalid account number {account_number}, skipping.')
             continue
 
-        aws_account_dict[account_number] = email
+        aws_account_dict[account_number.strip()] = email.strip()
 
     return aws_account_dict
 
@@ -321,6 +322,8 @@ if __name__ == '__main__':
                 for graph, members in all_members.items():
                     new_accounts = create_members(
                         d_client, graph, members, aws_account_dict)
+                    print("Sleeping for 5s to allow new members' invitations to propagate through DDB.")
+                    time.sleep(5)
                     accept_invitations(args.assume_role, itertools.chain(
                         new_accounts, pending[graph]), graph, region)
             except NameError as e:

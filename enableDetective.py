@@ -26,7 +26,7 @@ FORMAT = '%(asctime)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.INFO, stream=sys.stdout, format=FORMAT)
 
 
-def setup_command_line() -> argparse.Namespace:
+def setup_command_line(args = None) -> argparse.Namespace:
     """
     Configures and reads command line arguments.
 
@@ -57,7 +57,7 @@ def setup_command_line() -> argparse.Namespace:
     parser.add_argument('--enabled_regions', type=str,
                         help=('Regions to enable Detective. If not specified, '
                               'all available regions enabled.'))
-    return parser.parse_args()
+    return parser.parse_args(args)
 
 
 def read_accounts_csv(input_file: typing.IO) -> typing.Dict:

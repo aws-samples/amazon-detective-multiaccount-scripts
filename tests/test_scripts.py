@@ -180,7 +180,17 @@ def test_create_members():
     created_members = enableDetective.create_members(d_client, "graph1", {"333333333333"}, {"111111111111": "1@gmail.com", "222222222222": "2@gmail.com"})
     assert created_members == {"222222222222"}
 
+def test_enable_detective():
+    d_client = Mock()
 
+    d_client.list_graphs.return_value = {'GraphList': []}
+    d_client.create_graph.return_value = {'GraphArn': 'fooGraph123'}
+
+    graphs = enableDetective.enable_detective(d_client, "us-east-2")
+
+    assert graphs == ['fooGraph123']
+
+    
 
 
 

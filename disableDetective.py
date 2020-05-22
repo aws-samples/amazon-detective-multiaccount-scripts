@@ -277,9 +277,9 @@ if __name__ == '__main__':
             d_client = master_session.client('detective', region_name=region)
             graphs = get_graphs(d_client)
             if not graphs:
-                logging.info(f'AWS Detective is NOT disabled in {region}')
+                logging.info(f'Amazon Detective is NOT disabled in {region}')
                 continue
-            logging.info(f'AWS Detective is disabled in region {region}')
+            logging.info(f'Amazon Detective is disabled in region {region}')
 
             try:
 

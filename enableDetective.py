@@ -286,6 +286,22 @@ def accept_invitations(role: str, accounts: typing.Set[str], graph: str, region:
     except Exception as e:
         logging.exception(f'error accepting invitation {e.args}')
 
+def enable_detective(d_client: botocore.client.BaseClient, region: str):
+    graphs = get_graphs(d_client)
+    
+    if not graphs:
+        confirm = input('Should Amazon Detective be enabled in {}? Enter [Y/N]: '.format(region))
+
+        if confirm == 'Y' or confirm == 'y':
+            logging.info(f'Enabling Amazon Detective in {region}')
+            graphs = [d_client.create_graph()['GraphArn']]
+        else:
+            logging.info(f'Skipping {region}')
+            return None
+        logging.info(f'Amazon Detective is enabled in region {region}')
+
+    return graphs
+        
 if __name__ == '__main__':
     args = setup_command_line()
     aws_account_dict = read_accounts_csv(args.input_file)
@@ -310,11 +326,10 @@ if __name__ == '__main__':
     for region in detective_regions:
         try:
             d_client = master_session.client('detective', region_name=region)
-            graphs = get_graphs(d_client)
-            if not graphs:
-                logging.info(f'AWS Detective is NOT enabled in {region}')
+            graphs = enable_detective(d_client, region)
+
+            if graphs is None:
                 continue
-            logging.info(f'AWS Detective is enabled in region {region}')
 
             try:
                 all_members, pending = get_members(d_client, graphs)
@@ -322,7 +337,7 @@ if __name__ == '__main__':
                 for graph, members in all_members.items():
                     new_accounts = create_members(
                         d_client, graph, members, aws_account_dict)
-                    print("Sleeping for 5s to allow new members' invitations to propagate through DDB.")
+                    print("Sleeping for 5s to allow new members' invitations to propagate.")
                     time.sleep(5)
                     accept_invitations(args.assume_role, itertools.chain(
                         new_accounts, pending[graph]), graph, region)

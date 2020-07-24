@@ -42,23 +42,28 @@ def setup_command_line(args = None) -> argparse.Namespace:
         return val
 
     # Setup command line arguments
-    parser = argparse.ArgumentParser(description=('Link AWS Accounts to central '
-                                                  'Detective Account.'))
+    parser = argparse.ArgumentParser(description=('Unlink AWS Accounts from a central '
+                                                  'Detective Account, or delete the entire Detective graph.'))
     parser.add_argument('--master_account', type=_master_account_type,
                         required=True,
                         help="AccountId for Central AWS Account.")
     parser.add_argument('--input_file', type=argparse.FileType('r'),
-                        required=True,
                         help=('Path to CSV file containing the list of '
-                              'account IDs and Email addresses.'))
+                              'account IDs and Email addresses. '
+                              'This does not need to be provided if you use the delete_graph flag.'))
     parser.add_argument('--assume_role', type=str, required=True,
                         help="Role Name to assume in each account.")
-    parser.add_argument('--delete_master', action='store_true', default=False,
-                        help="Delete the master Detective graph.")
+    parser.add_argument('--delete_graph', action='store_true',
+                        help=('Delete the master Detective graph. '
+                              'If not provided, you must provide an input file.'))
     parser.add_argument('--disabled_regions', type=str,
                         help=('Regions to disable Detective. If not specified, '
                               'all available regions disabled.'))
-    return parser.parse_args(args)
+    args = parser.parse_args(args)
+    if not args.delete_graph and not args.input_file:
+        raise parser.error("Either an input file or the delete_graph flag should be provided.")
+
+    return args
 
 
 def read_accounts_csv(input_file: typing.IO) -> typing.Dict:
@@ -73,6 +78,9 @@ def read_accounts_csv(input_file: typing.IO) -> typing.Dict:
     """
     account_re = re.compile(r'[0-9]{12}')
     aws_account_dict = {}
+
+    if not input_file:
+        return aws_account_dict
 
     for acct in input_file.readlines():
         split_line = acct.strip().split(',')
@@ -255,6 +263,12 @@ if __name__ == '__main__':
     args = setup_command_line()
     aws_account_dict = read_accounts_csv(args.input_file)
 
+    # making sure that we either have an account list to delete from graphs or the delete_graph flag is provided.
+    if len(list(aws_account_dict.keys())) == 0 and not args.delete_graph:
+        logging.error("The delete_graph flag was False while the provided account list is empty. "\
+            "Please check your inputs and re-run the script.")
+        exit(1)
+
     try:
         session = boto3.session.Session()
         detective_regions = get_regions(session, args.disabled_regions)
@@ -277,15 +291,16 @@ if __name__ == '__main__':
             d_client = master_session.client('detective', region_name=region)
             graphs = get_graphs(d_client)
             if not graphs:
-                logging.info(f'Amazon Detective is NOT disabled in {region}')
-                continue
-            logging.info(f'Amazon Detective is disabled in region {region}')
+                logging.info(f'Amazon Detective has already been disabled in {region}')
+            else:
+                logging.info(f'Disabling Amazon Detective in region {region}')
 
             try:
-
                 for graph in graphs:
-                    delete_members(
-                        d_client, graph, aws_account_dict)
+                    if not args.delete_graph:
+                        delete_members(d_client, graph, aws_account_dict)
+                    else:
+                        d_client.delete_graph(graph)
             except NameError as e:
                 logging.error(f'account is not defined: {e}')
             except Exception as e:

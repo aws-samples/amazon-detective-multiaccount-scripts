@@ -57,9 +57,22 @@ def test_setup_command_line_disableDetective():
     with pytest.raises(SystemExit):
     	disableDetective.setup_command_line(['--master_account', '12345', '--assume_role', 'detectiveAdmin', '--disabled_regions', 'us-east-1,us-east-2,us-west-2,ap-northeast-1,eu-west-1', '--input_file', 'accounts.csv'])
     
-    # Non existent input file
+    # Non existent input file and no delete_graph flag
     with pytest.raises(SystemExit):
     	disableDetective.setup_command_line(['--master_account', '000000000001', '--assume_role', 'detectiveAdmin', '--disabled_regions', 'us-east-1,us-east-2,us-west-2,ap-northeast-1,eu-west-1', '--input_file', 'accounts1.csv'])
+    
+    # Non existent input file with delete_graph flag provided
+    with pytest.raises(SystemExit):
+    	disableDetective.setup_command_line(['--master_account', '000000000001', '--assume_role', 'detectiveAdmin', '--disabled_regions', 'us-east-1,us-east-2,us-west-2,ap-northeast-1,eu-west-1', '--input_file', 'accounts1.csv', '--delete_graph'])
+    
+    # No input file provided and no delete_graph flag
+    with pytest.raises(SystemExit):
+        disableDetective.setup_command_line(['--master_account', '000000000001', '--assume_role', 'detectiveAdmin', '--disabled_regions', 'us-east-1,us-east-2,us-west-2,ap-northeast-1,eu-west-1'])
+    
+    # No input file provided but delete_graph is set
+    args = disableDetective.setup_command_line(['--master_account', '000000000001', '--assume_role', 'detectiveAdmin', '--disabled_regions', 'us-east-1,us-east-2,us-west-2,ap-northeast-1,eu-west-1', '--delete_graph'])
+    assert args.input_file == None
+    assert args.delete_graph == True
     
 ###
 # The purpose of this test is to make sure we read accounts and emails correctly from the input .csv file in enableDetective.py
@@ -76,6 +89,7 @@ def test_read_accounts_csv_enableDetective():
 # The purpose of this test is to make sure we read accounts and emails correctly from the input .csv file in disableDetective.py
 ###
 def test_read_accounts_csv_disableDetective():
+	# a test case where an input file is provided, although some of the lines are not correct
 	args = disableDetective.setup_command_line(['--master_account', '555555555555', '--assume_role', 'detectiveAdmin', '--disabled_regions', 'us-east-1,us-east-2,us-west-2,ap-northeast-1,eu-west-1', '--input_file', 'accounts.csv'])
 
 	accounts_dict = disableDetective.read_accounts_csv(args.input_file)
@@ -83,6 +97,17 @@ def test_read_accounts_csv_disableDetective():
 	assert len(accounts_dict.keys()) == 6
 	assert accounts_dict == {"123456789012":"random@gmail.com", "000012345678":"email@gmail.com", "555555555555":"test5@gmail.com", "111111111111":"test1@gmail.com", "222222222222":"test2@gmail.com", "333333333333":"test3@gmail.com"}
 
+	# a test case where no input file is provided
+	args = disableDetective.setup_command_line(['--master_account', '555555555555', '--assume_role', 'detectiveAdmin', '--disabled_regions', 'us-east-1,us-east-2,us-west-2,ap-northeast-1,eu-west-1', '--delete_graph'])
+	assert args.input_file == None
+	accounts_dict = disableDetective.read_accounts_csv(args.input_file)
+	assert accounts_dict == {}
+
+	# a test case where an empty input file is provided, along with delete_graph. This is not an error, although clients should not run with this kind of input
+	args = disableDetective.setup_command_line(['--master_account', '555555555555', '--assume_role', 'detectiveAdmin', '--disabled_regions', 'us-east-1,us-east-2,us-west-2,ap-northeast-1,eu-west-1', '--input_file', 'accounts2.csv', '--delete_graph'])
+	accounts_dict = disableDetective.read_accounts_csv(args.input_file)
+	assert accounts_dict == {}
+	assert args.delete_graph == True
 
 ###
 # The purpose of this test is to make sure we extract regions correctly in enableDetective.py

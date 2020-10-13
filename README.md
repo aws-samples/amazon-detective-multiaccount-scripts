@@ -137,8 +137,31 @@ Example:
 ```
 111122223333,srodriguez@example.com
 444455556666,rroe@example.com
-```
 
+```
+A CSV file can also be generated from the Organizations Master or an account that is Delegated Administrator for GuardDuty/IAM Access Analyzer by running the below code:
+
+```
+import boto3
+import csv
+import os
+
+## Exports Organizations members as CSV to be used as input for Amazon Detective
+
+client = boto3.client('organizations')
+
+def create_accounts_csv():
+    paginator = client.get_paginator('list_accounts')
+    page_iterator = paginator.paginate()
+    with open('accounts.csv', mode='w', newline='') as accounts_file:
+        writer = csv.writer(accounts_file, dialect='excel', delimiter='"', lineterminator='')
+        for r in page_iterator:
+            for key in r['Accounts']:
+                writer.writerows(key['Id']+',')
+                writer.writerows(key['Email']+'\n')
+
+create_accounts_csv()
+```
 
 ## Executing the scripts
 

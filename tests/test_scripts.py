@@ -24,6 +24,14 @@ def test_setup_command_line_enableDetective():
 
     args = enableDetective.setup_command_line(['--master_account', '000000000001', '--assume_role', 'detectiveAdmin', '--enabled_regions', 'us-east-1,us-east-2,us-west-2,ap-northeast-1,eu-west-1', '--input_file', 'accounts.csv'])
     assert args.master_account == '000000000001'
+    assert args.tags == None
+
+    args = enableDetective.setup_command_line("--master_account 123456789012 --assume_role detectiveAdmin --input_file accounts.csv --tags TagKey1=TagValue1,TagKey2=TagValue2,TagKey3=TagValue3".split(" "))
+    assert args.tags == {
+        "TagKey1": "TagValue1",
+        "TagKey2": "TagValue2",
+        "TagKey3": "TagValue3",
+    }
 
     # Wrong master account
     # The internal function _master_account_type() should raise argparse.ArgumentTypeError, however this exception gets supressed by argparse, and SystemExit is raised instead.

@@ -26,11 +26,13 @@ def test_setup_command_line_enableDetective():
     assert args.master_account == '000000000001'
     assert args.tags == None
 
-    args = enableDetective.setup_command_line("--master_account 123456789012 --assume_role detectiveAdmin --input_file accounts.csv --tags TagKey1=TagValue1,TagKey2=TagValue2,TagKey3=TagValue3".split(" "))
+    args = enableDetective.setup_command_line("--master_account 123456789012 --assume_role detectiveAdmin --input_file accounts.csv --tags TagKey1=TagValue1,TagKey2=TagValue2,TagKey3=TagValue3,TagKey4=,TagKey5=TagValue5".split(" "))
     assert args.tags == {
         "TagKey1": "TagValue1",
         "TagKey2": "TagValue2",
         "TagKey3": "TagValue3",
+        "TagKey4": "",
+        "TagKey5": "TagValue5",
     }
 
     # Wrong master account

@@ -303,7 +303,7 @@ def enable_detective(d_client: botocore.client.BaseClient, region: str, tags: di
         confirm = input('Should Amazon Detective be enabled in {}? Enter [Y/N]: '.format(region))
 
         if confirm == 'Y' or confirm == 'y':
-            logging.info(f'Enabling Amazon Detective in {region}' + (f'with tags {tags}' if tags else ''))
+            logging.info(f'Enabling Amazon Detective in {region}' + (f' with tags {tags}' if tags else ''))
             graphs = [d_client.create_graph(Tags=tags)['GraphArn']]
         else:
             logging.info(f'Skipping {region}')

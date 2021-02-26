@@ -198,7 +198,8 @@ arguments:
                         accounts to the behavior graph. If the master account already has a behavior graph in a Region, then 
                         the member accounts are added to that behavior graph. If you do not provide a list of Regions, then
                         the script acts across all Regions that Detective supports.
-  
+  --disable_email       If this flag is included, then emails will not be sent to the member accounts. Member accounts must still accept 
+                        the invitation before they are added to the behavior graph.
 ```
   
 
@@ -236,4 +237,16 @@ arguments:
   --delete_master       If this flag is included, then instead of only deleting the member accounts from the master account's 
                         behavior graphs, the script disables Detective for the master account in all of the specified Regions.
                         When Detective is disabled for a master account, the master account's behavior graph is disabled.
+```
+
+## Contributing to this project
+
+### Running tests
+
+```
+# Install requirements
+pip3 install boto3 pytest
+
+# In the tests/ directory...
+pytest -s
 ```

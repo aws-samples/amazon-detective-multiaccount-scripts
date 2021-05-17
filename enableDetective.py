@@ -46,7 +46,7 @@ def setup_command_line(args = None) -> argparse.Namespace:
         def __call__(self, parser, namespace, values, option_string=None):
             setattr(namespace, self.dest, dict())
             for kv_pairs in values.split(","):
-                key, value = kv_pairs.split('=', 1)
+                key, _, value = kv_pairs.partition('=')
                 getattr(namespace, self.dest)[key] = value
 
    # Setup command line arguments
@@ -66,7 +66,9 @@ def setup_command_line(args = None) -> argparse.Namespace:
                               'all available regions enabled.'))
     parser.add_argument('--tags',
                         action=ParseCommaSeparatedKeyValuePairsAction,
-                        help="Tags to be added to any newly enabled Detective graphs.")
+                        help='Comma-separated list of tag key-value pairs to be added '
+                             'to any newly enabled Detective graphs. Values are optional '
+                             'and are separated from keys by the equal sign (i.e. \'=\')')
     return parser.parse_args(args)
 
 

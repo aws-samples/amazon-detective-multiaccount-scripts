@@ -64,6 +64,10 @@ def setup_command_line(args = None) -> argparse.Namespace:
     parser.add_argument('--enabled_regions', type=str,
                         help=('Regions to enable Detective. If not specified, '
                               'all available regions enabled.'))
+    parser.add_argument('--disable_email', action='store_true',
+                        help=('Don\'t send emails to the member accounts. Member '
+                              'accounts must still accept the invitation before '
+                              'they are added to the behavior graph.'))
     parser.add_argument('--tags',
                         action=ParseCommaSeparatedKeyValuePairsAction,
                         help='Comma-separated list of tag key-value pairs to be added '
@@ -240,7 +244,7 @@ def get_members(d_client: botocore.client.BaseClient, graphs: typing.List[str]) 
             {g: {x['AccountId'] for x in v if x['Status'] == 'INVITED'} for g, v in pending})
 
 
-def create_members(d_client: botocore.client.BaseClient, graph_arn: str, account_ids: typing.Set[str],
+def create_members(d_client: botocore.client.BaseClient, graph_arn: str, disable_email: bool, account_ids: typing.Set[str],
                    account_csv: typing.Dict[str, str]) -> typing.Set[str]:
     """
     Creates member accounts for all accounts in the csv that are not present in the graph member set.
@@ -269,7 +273,8 @@ def create_members(d_client: botocore.client.BaseClient, graph_arn: str, account
                     for x in set_difference]
         response = d_client.create_members(GraphArn=graph_arn,
                                         Message='Automatically generated invitation',
-                                        Accounts=new_members)
+                                        Accounts=new_members,
+                                        DisableEmailNotification=disable_email)
         for error in response['UnprocessedAccounts']:
             logging.exception(f'Could not create member for account {error["AccountId"]} in '
                             f'graph {graph_arn}: {error["Reason"]}')
@@ -348,7 +353,7 @@ if __name__ == '__main__':
 
                 for graph, members in all_members.items():
                     new_accounts = create_members(
-                        d_client, graph, members, aws_account_dict)
+                        d_client, graph, args.disable_email, members, aws_account_dict)
                     print("Sleeping for 5s to allow new members' invitations to propagate.")
                     time.sleep(5)
                     accept_invitations(args.assume_role, itertools.chain(

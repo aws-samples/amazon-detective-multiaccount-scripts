@@ -42,7 +42,14 @@ def setup_command_line(args = None) -> argparse.Namespace:
             raise argparse.ArgumentTypeError
         return val
 
-    # Setup command line arguments
+    class ParseCommaSeparatedKeyValuePairsAction(argparse.Action):
+        def __call__(self, parser, namespace, values, option_string=None):
+            setattr(namespace, self.dest, dict())
+            for kv_pairs in values.split(","):
+                key, _, value = kv_pairs.partition('=')
+                getattr(namespace, self.dest)[key] = value
+
+   # Setup command line arguments
     parser = argparse.ArgumentParser(description=('Link AWS Accounts to central '
                                                   'Detective Account.'))
     parser.add_argument('--master_account', type=_master_account_type,
@@ -61,6 +68,11 @@ def setup_command_line(args = None) -> argparse.Namespace:
                         help=('Don\'t send emails to the member accounts. Member '
                               'accounts must still accept the invitation before '
                               'they are added to the behavior graph.'))
+    parser.add_argument('--tags',
+                        action=ParseCommaSeparatedKeyValuePairsAction,
+                        help='Comma-separated list of tag key-value pairs to be added '
+                             'to any newly enabled Detective graphs. Values are optional '
+                             'and are separated from keys by the equal sign (i.e. \'=\')')
     return parser.parse_args(args)
 
 
@@ -291,15 +303,15 @@ def accept_invitations(role: str, accounts: typing.Set[str], graph: str, region:
     except Exception as e:
         logging.exception(f'error accepting invitation {e.args}')
 
-def enable_detective(d_client: botocore.client.BaseClient, region: str):
+def enable_detective(d_client: botocore.client.BaseClient, region: str, tags: dict = None):
     graphs = get_graphs(d_client)
     
     if not graphs:
         confirm = input('Should Amazon Detective be enabled in {}? Enter [Y/N]: '.format(region))
 
         if confirm == 'Y' or confirm == 'y':
-            logging.info(f'Enabling Amazon Detective in {region}')
-            graphs = [d_client.create_graph()['GraphArn']]
+            logging.info(f'Enabling Amazon Detective in {region}' + (f' with tags {tags}' if tags else ''))
+            graphs = [d_client.create_graph(Tags=tags)['GraphArn']]
         else:
             logging.info(f'Skipping {region}')
             return None
@@ -331,7 +343,7 @@ if __name__ == '__main__':
     for region in detective_regions:
         try:
             d_client = master_session.client('detective', region_name=region)
-            graphs = enable_detective(d_client, region)
+            graphs = enable_detective(d_client, region, args.tags)
 
             if graphs is None:
                 continue

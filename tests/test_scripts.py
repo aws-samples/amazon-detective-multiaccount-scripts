@@ -24,6 +24,17 @@ def test_setup_command_line_enableDetective():
 
     args = enableDetective.setup_command_line(['--master_account', '000000000001', '--assume_role', 'detectiveAdmin', '--enabled_regions', 'us-east-1,us-east-2,us-west-2,ap-northeast-1,eu-west-1', '--input_file', 'accounts.csv'])
     assert args.master_account == '000000000001'
+    assert args.tags == None
+
+    args = enableDetective.setup_command_line("--master_account 123456789012 --assume_role detectiveAdmin --input_file accounts.csv --tags TagKey1=TagValue1,TagKey2=TagValue2,TagKey3=TagValue3,TagKey4=,TagKey5=TagValue5,TagKey6".split(" "))
+    assert args.tags == {
+        "TagKey1": "TagValue1",
+        "TagKey2": "TagValue2",
+        "TagKey3": "TagValue3",
+        "TagKey4": "",
+        "TagKey5": "TagValue5",
+        "TagKey6": "",
+    }
 
     args = enableDetective.setup_command_line(['--disable_email', '--master_account', '000000000001', '--assume_role', 'detectiveAdmin', '--input_file', 'accounts.csv'])
     assert args.disable_email == True

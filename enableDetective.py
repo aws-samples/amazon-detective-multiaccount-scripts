@@ -318,6 +318,14 @@ def enable_detective(d_client: botocore.client.BaseClient, region: str, tags: di
         logging.info(f'Amazon Detective is enabled in region {region}')
 
     return graphs
+
+def chunked(it, size):
+    it = iter(it)
+    while True:
+        p = tuple(itertools.islice(it, size))
+        if not p:
+            break
+        yield p
         
 if __name__ == '__main__':
     args = setup_command_line()
@@ -340,30 +348,33 @@ if __name__ == '__main__':
         # In this case the traceback adds LOTS of value.
         logging.exception(f'error creating session {e.args}')
 
-    for region in detective_regions:
-        try:
-            d_client = master_session.client('detective', region_name=region)
-            graphs = enable_detective(d_client, region, args.tags)
+    #Chunk the list of accounts in the .csv into batches of 50 due to the API limitation of 50 accounts per invokation
+    for chunk in chunked(aws_account_dict.items(), 50):
 
-            if graphs is None:
-                continue
-
+        for region in detective_regions:
             try:
-                all_members, pending = get_members(d_client, graphs)
+                d_client = master_session.client('detective', region_name=region)
+                graphs = enable_detective(d_client, region, args.tags)
 
-                for graph, members in all_members.items():
-                    new_accounts = create_members(
-                        d_client, graph, args.disable_email, members, aws_account_dict)
-                    print("Sleeping for 5s to allow new members' invitations to propagate.")
-                    time.sleep(5)
-                    accept_invitations(args.assume_role, itertools.chain(
-                        new_accounts, pending[graph]), graph, region)
+                if graphs is None:
+                    continue
+
+                try:
+                    all_members, pending = get_members(d_client, graphs)
+
+                    for graph, members in all_members.items():
+                        new_accounts = create_members(
+                            d_client, graph, args.disable_email, members, chunk)
+                        print("Sleeping for 5s to allow new members' invitations to propagate.")
+                        time.sleep(5)
+                        accept_invitations(args.assume_role, itertools.chain(
+                            new_accounts, pending[graph]), graph, region)
+                except NameError as e:
+                    logging.error(f'account is not defined: {e}')
+                except Exception as e:
+                    logging.exception(f'unable to accept invitiation: {e}')
+
             except NameError as e:
                 logging.error(f'account is not defined: {e}')
             except Exception as e:
-                logging.exception(f'unable to accept invitiation: {e}')
-
-        except NameError as e:
-            logging.error(f'account is not defined: {e}')
-        except Exception as e:
-            logging.exception(f'error with region {region}: {e}')
+                logging.exception(f'error with region {region}: {e}')

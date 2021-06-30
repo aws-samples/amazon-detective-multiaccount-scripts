@@ -259,6 +259,14 @@ def delete_members(d_client: botocore.client.BaseClient, graph_arn: str,
     except e:
         logging.error(f'error when deleting member: {e}')
 
+def chunked(it, size):
+    it = iter(it)
+    while True:
+        p = tuple(itertools.islice(it, size))
+        if not p:
+            break
+        yield p
+
 if __name__ == '__main__':
     args = setup_command_line()
     aws_account_dict = read_accounts_csv(args.input_file)
@@ -286,27 +294,30 @@ if __name__ == '__main__':
         # In this case the traceback adds LOTS of value.
         logging.exception(f'error creating session {e.args}')
 
-    for region in detective_regions:
-        try:
-            d_client = master_session.client('detective', region_name=region)
-            graphs = get_graphs(d_client)
-            if not graphs:
-                logging.info(f'Amazon Detective has already been disabled in {region}')
-            else:
-                logging.info(f'Disabling Amazon Detective in region {region}')
+    #Chunk the list of accounts in the .csv into batches of 50 due to the API limitation of 50 accounts per invokation
+    for chunk in chunked(aws_account_dict.items(), 50):
 
+        for region in detective_regions:
             try:
-                for graph in graphs:
-                    if not args.delete_graph:
-                        delete_members(d_client, graph, aws_account_dict)
-                    else:
-                        d_client.delete_graph(graph)
+                d_client = master_session.client('detective', region_name=region)
+                graphs = get_graphs(d_client)
+                if not graphs:
+                    logging.info(f'Amazon Detective has already been disabled in {region}')
+                else:
+                    logging.info(f'Disabling Amazon Detective in region {region}')
+
+                try:
+                    for graph in graphs:
+                        if not args.delete_graph:
+                            delete_members(d_client, graph, chunk)
+                        else:
+                            d_client.delete_graph(graph)
+                except NameError as e:
+                    logging.error(f'account is not defined: {e}')
+                except Exception as e:
+                    logging.exception(f'{e}')
+
             except NameError as e:
                 logging.error(f'account is not defined: {e}')
             except Exception as e:
-                logging.exception(f'{e}')
-
-        except NameError as e:
-            logging.error(f'account is not defined: {e}')
-        except Exception as e:
-            logging.exception(f'error with region {region}: {e}')
+                logging.exception(f'error with region {region}: {e}')

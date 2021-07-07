@@ -303,7 +303,7 @@ def accept_invitations(role: str, accounts: typing.Set[str], graph: str, region:
     except Exception as e:
         logging.exception(f'error accepting invitation {e.args}')
 
-def enable_detective(d_client: botocore.client.BaseClient, region: str, tags: dict = None):
+def enable_detective(d_client: botocore.client.BaseClient, region: str, tags: dict = {}):
     graphs = get_graphs(d_client)
     
     if not graphs:
@@ -349,7 +349,8 @@ if __name__ == '__main__':
         logging.exception(f'error creating session {e.args}')
 
     #Chunk the list of accounts in the .csv into batches of 50 due to the API limitation of 50 accounts per invokation
-    for chunk in chunked(aws_account_dict.items(), 50):
+    for chunk_tuple in chunked(aws_account_dict.items(), 50):
+        chunk = {x: y for x, y in chunk_tuple}
 
         for region in detective_regions:
             try:

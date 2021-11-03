@@ -295,7 +295,8 @@ if __name__ == '__main__':
         logging.exception(f'error creating session {e.args}')
 
     #Chunk the list of accounts in the .csv into batches of 50 due to the API limitation of 50 accounts per invokation
-    for chunk in chunked(aws_account_dict.items(), 50):
+    for chunk_tuple in chunked(aws_account_dict.items(), 50):
+        chunk = {x: y for x, y in chunk_tuple}
 
         for region in detective_regions:
             try:

@@ -256,7 +256,7 @@ def delete_members(d_client: botocore.client.BaseClient, graph_arn: str,
         for error in response['UnprocessedAccounts']:
             logging.exception(f'Could not delete member for account {error["AccountId"]} in '
                             f'graph {graph_arn}: {error["Reason"]}')
-    except e:
+    except Exception as e:
         logging.error(f'error when deleting member: {e}')
 
 def chunked(it, size):

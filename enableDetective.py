@@ -329,6 +329,8 @@ def chunked(it, size):
         
 if __name__ == '__main__':
     args = setup_command_line()
+    if args.tags is None:
+        args.tags = {}
     aws_account_dict = read_accounts_csv(args.input_file)
 
     try:

@@ -1,0 +1,4 @@
+botocore~=1.24.39
+pytest~=7.1.1
+boto3~=1.21.39
+setuptools~=60.10.0

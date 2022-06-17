@@ -1,3 +1,11 @@
+#    __author__ = "Amazon Detective"
+#    __copyright__ = "Amazon 2020"
+#    __credits__ = "Amazon Detective"
+#    __license__ = "Apache"
+#    __version__ = "1.1.0"
+#    __maintainer__ = "Amazon Detective"
+#    __email__ = "detective-demo-requests@amazon.com"
+#    __status__ = "Production"
 AWSTemplateFormatVersion: 2010-09-09
 Description: Creates a new role to allow an administrator account to enable and manage Detective.
 
@@ -7,6 +15,10 @@ Parameters:
     Description: AWS Account Id of the administrator account (the account in which will recieve Detective findings from member accounts).
     MaxLength: 12
     MinLength: 12
+  RoleName:
+    Type: String
+    Default: "ManageDetective"
+    Description: RoleName to create IAM Role in the administrator account and each member account.
   CreateInstanceRole:
     Type: String
     Description: Select Yes to create an EC2 instance role that can be attached to an instnace in the Master account which will allow the instance to assume the exection role.  Select No if you plan to run the script locally or are creating the stack in a member account.
@@ -17,7 +29,7 @@ Resources:
   ExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: ManageDetective
+      RoleName: !Ref RoleName
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -34,7 +46,10 @@ Resources:
     Type: AWS::IAM::Role
     Condition: CreateInstanceRole
     Properties:
-      RoleName: ManageDetectiveInstanceRole
+      RoleName: !Join
+                - ''
+                - - !Ref RoleName
+                  - 'InstanceRole'
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement: 
@@ -47,7 +62,10 @@ Resources:
               - "sts:AssumeRole"
       Policies:
       -
-        PolicyName: ManageDetectivePolicy
+        PolicyName: !Join
+                    - ''
+                    - - !Ref RoleName
+                      - 'Policy'
         PolicyDocument: 
           Version: "2012-10-17"
           Statement: 

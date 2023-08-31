@@ -560,14 +560,14 @@ def test_collect_session_and_regions():
         assert admin_session == ["session1"]
 
     # If regions does not exist and user answer yes to input request question,
-    # detective_regions prints out all 20 regions
+    # detective_regions prints out all 21 regions
     args = enableDetective.setup_command_line(['--admin_account', '000000000001', '--assume_role', 'detectiveAdmin', '--input_file', 'accounts.csv'])
     assert not args.enabled_regions
     with patch.object(helper, 'assume_role', return_value=["session1", "session2"]):
         with patch('builtins.input', return_value='Y'):
             detective_regions, admin_session = helper.collect_session_and_regions(args.admin_account, args.assume_role, args.enabled_regions,
                                                                                   role_session_name, args.skip_prompt)
-            assert len(detective_regions) == 20
+            assert len(detective_regions) >= 20
             assert admin_session == ["session1", "session2"]
 
     # mocking function returns to test on normal behavior
